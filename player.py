@@ -4,6 +4,7 @@ import pygame
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
+        self.health = 2  # Initialize player health to 2
         # Load player images
         self.images = [pygame.image.load(f"assets/taimei{i}.png") for i in range(1, 4)]
         self.images = [pygame.transform.scale(img, (70, 110)) for img in self.images]
@@ -91,6 +92,12 @@ class Player(pygame.sprite.Sprite):
                 self.last_change = now
         else:
             self.image = self.images[0]  # Default to taimei1.png
+
+    def hit(self):
+        """Called when player collides with enemy"""
+        self.health -= 1
+        if self.health <= 0:
+            self.kill()
 
     def shoot(self):
         """Create a new bullet and add it to the bullets group"""

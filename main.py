@@ -63,8 +63,11 @@ level = Level(level_data)
 # Create UI
 ui = UI()
 
-# Game loop
+# Game states
 running = True
+game_over = False
+
+# Game loop
 while running:
     # Handle events
     for event in pygame.event.get():
@@ -72,23 +75,31 @@ while running:
             running = False
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                hit_sound.play()
+                if not game_over:
+                    hit_sound.play()
+                else:
+                    # Reset game state
+                    player_group.empty()  # Clear existing player
+                    player = Player(100, 605)  # Create new player
+                    player_group.add(player)  # Add to group
+                    enemy_group.empty()
+                    ui.score = 0
+                    ui.update_score()
+                    game_over = False
 
     # Update game logic
-    player_group.update()
-    enemy_group.update()
+    if not game_over:
+        player_group.update()
+        enemy_group.update()
 
-    # Check for collisions
-    collisions = pygame.sprite.spritecollide(player, enemy_group, False)
-    if collisions:
-        if pygame.key.get_pressed()[pygame.K_SPACE]:
-            # Kill enemy, increase score, and spawn new one
+        # Check for collisions
+        collisions = pygame.sprite.spritecollide(player, enemy_group, False)
+        if collisions:
             for enemy in collisions:
-                enemy.kill()
-                ui.score += 1
-                ui.update_score()
-            new_enemy = Enemy(int(screen_width * 0.9), 605)
-            enemy_group.add(new_enemy)
+                player.hit()
+                if player.health <= 0:
+                    game_over = True
+                    print("Game Over!")
 
     # Spawn new enemy when previous one disappears
     if len(enemy_group) == 0:
@@ -109,21 +120,47 @@ while running:
     player.bullets.draw(screen)
     player.bullets.update()
 
-    # Draw enemy
+    # Draw enemy and their bullets
     enemy_group.draw(screen)
+    for enemy in enemy_group:
+        enemy.bullets.draw(screen)
 
-    # Check for bullet-enemy collisions
+    # Check for player bullet-enemy collisions
     bullet_collisions = pygame.sprite.groupcollide(
-        player.bullets, enemy_group, True, True
+        player.bullets, enemy_group, True, False
     )
+
+    # Check for enemy bullet-player collisions
+    for enemy in enemy_group:
+        if pygame.sprite.spritecollide(player, enemy.bullets, True):
+            player.hit()
+            if player.health <= 0:
+                game_over = True
+                print("Game Over!")
     if bullet_collisions:
-        ui.score += len(bullet_collisions)
-        ui.update_score()
-        new_enemy = Enemy(int(screen_width * 0.9), 605)
-        enemy_group.add(new_enemy)
+        for enemy in bullet_collisions.values():
+            for e in enemy:
+                e.hit()
+        # Only spawn new enemy when all enemies are dead
+        if len(enemy_group) == 0:
+            ui.score += 1
+            ui.update_score()
+            new_enemy = Enemy(int(screen_width * 0.9), 605)
+            enemy_group.add(new_enemy)
 
     # Draw UI
     ui.draw(screen)
+
+    # Draw game over screen
+    if game_over:
+        font = pygame.font.Font(None, 74)
+        text = font.render("GAME OVER", True, (255, 0, 0))
+        text_rect = text.get_rect(center=(screen_width / 2, screen_height / 2))
+        screen.blit(text, text_rect)
+        font = pygame.font.Font(None, 36)
+        text = font.render("Press SPACE to restart", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(screen_width / 2, screen_height / 2 + 50))
+        screen.blit(text, text_rect)
 
     # Update display
     pygame.display.flip()
