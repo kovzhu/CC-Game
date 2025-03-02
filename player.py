@@ -1,10 +1,32 @@
 import pygame
 
 
+class AmmoBox(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.image.load("assets/ammo.jpg")
+        self.image = pygame.transform.scale(self.image, (60, 60))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.speed = 3  # Movement speed
+        self.screen_width = pygame.display.Info().current_w
+
+    def update(self):
+        # Move left to right
+        self.rect.x += self.speed
+
+        # Wrap around when reaching screen edge
+        if self.rect.left > self.screen_width:
+            self.rect.right = 0
+        elif self.rect.right < 0:
+            self.rect.left = self.screen_width
+
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.health = 2  # Initialize player health to 2
+        self.health = 2
         # Load player images
         self.images = [pygame.image.load(f"assets/taimei{i}.png") for i in range(1, 4)]
         self.images = [pygame.transform.scale(img, (70, 110)) for img in self.images]
@@ -19,10 +41,12 @@ class Player(pygame.sprite.Sprite):
         self.last_change = pygame.time.get_ticks()
         self.change_delay = 10000
         self.last_sound_time = 0
-        self.sound_cooldown = 200  # Minimum time between sounds in ms
+        self.sound_cooldown = 200
         self.bullets = pygame.sprite.Group()
-        self.shoot_cooldown = 500  # Milliseconds between shots
+        self.shoot_cooldown = 500
         self.last_shot_time = 0
+        self.ammo = 0  # Start with no ammo
+        self.has_ammo_box = True  # Flag to track if ammo box exists
 
     def update(self):
         keys = pygame.key.get_pressed()
@@ -52,8 +76,8 @@ class Player(pygame.sprite.Sprite):
             moving = True
             pygame.mixer.Sound("sounds/wing.wav").play()
 
-        # Handle space key
-        if keys[pygame.K_SPACE]:
+        # Handle shooting only if player has ammo
+        if keys[pygame.K_SPACE] and self.ammo > 0:
             # Cycle through player images
             if self.current_image < len(self.images) - 1:
                 self.current_image += 1
@@ -68,6 +92,7 @@ class Player(pygame.sprite.Sprite):
             if now - self.last_shot_time > self.shoot_cooldown:
                 self.shoot()
                 self.last_shot_time = now
+                self.ammo -= 1
 
         # Apply gravity
         self.velocity_y += 1
@@ -105,3 +130,12 @@ class Player(pygame.sprite.Sprite):
 
         bullet = Bullet(self.rect.centerx, self.rect.centery)
         self.bullets.add(bullet)
+
+    def collect_ammo(self, ammo_box):
+        """Called when player collects ammo box"""
+        if self.rect.colliderect(ammo_box.rect) and self.velocity_y < 0:  # Only collect when jumping up
+            self.ammo += 200
+            ammo_box.kill()
+            pygame.mixer.Sound("sounds/point.wav").play()
+            return True  # Indicate successful collection
+        return False

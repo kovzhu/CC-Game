@@ -1,5 +1,5 @@
 import pygame
-from player import Player
+from player import Player, AmmoBox
 from enemy import Enemy
 from level import Level
 from ui import UI
@@ -62,6 +62,12 @@ level = Level(level_data)
 
 # Create UI
 ui = UI()
+
+# Create ammo box variables
+ammo_box = None
+ammo_box_group = pygame.sprite.Group()
+last_ammo_box_time = 0
+AMMO_BOX_INTERVAL = 5000  # 5 seconds in milliseconds
 
 # Game states
 running = True
@@ -148,8 +154,24 @@ while running:
             new_enemy = Enemy(int(screen_width * 0.9), 605)
             enemy_group.add(new_enemy)
 
-    # Draw UI
-    ui.draw(screen)
+    # Update and draw ammo box
+    current_time = pygame.time.get_ticks()
+
+    # Spawn new ammo box if enough time has passed and no box exists
+    if ammo_box is None and current_time - last_ammo_box_time > AMMO_BOX_INTERVAL:
+        ammo_box = AmmoBox(-50, 550)  # Start off screen
+        ammo_box_group.add(ammo_box)
+        last_ammo_box_time = current_time
+
+    ammo_box_group.update()
+    ammo_box_group.draw(screen)
+
+    # Check for ammo box collision
+    if ammo_box and player.collect_ammo(ammo_box):
+        ammo_box = None  # Mark current box as collected
+
+    # Draw UI with ammo count
+    ui.draw(screen, player.ammo)
 
     # Draw game over screen
     if game_over:
