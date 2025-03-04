@@ -114,4 +114,4 @@ def change_level_data(level_data, x, y, value, count):
 
 
 level_data = change_level_data(level_data, 18, 5, 1, 5)
-level_data = change_level_data(level_data, 16, 10, 1, 5)
+level_data = change_level_data(level_data, 16, 12, 1, 5)

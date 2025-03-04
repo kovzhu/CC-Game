@@ -143,8 +143,10 @@ while running:
         if pygame.sprite.spritecollide(player, enemy.bullets, True):
             player.hit()
             if player.health <= 0:
-                game_over = True
-                print("Game Over!")
+                if not game_over:
+                    game_over = True
+                    print("Game Over!")
+                    pygame.mixer.Sound("sounds/game-over1.mp3").play()
     if bullet_collisions:
         for enemy in bullet_collisions.values():
             for e in enemy:
