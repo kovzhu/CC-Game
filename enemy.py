@@ -2,10 +2,12 @@ import pygame
 import random
 from pygame.math import Vector2
 
+
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, position):
         super().__init__()
         self.image = pygame.image.load("assets/bullet2.png")
+        self.image = pygame.transform.scale(self.image, (20, 20))
         self.rect = self.image.get_rect(center=position)
         self.speed = -5  # Move left
         self.velocity = Vector2(self.speed, 0)
@@ -14,6 +16,7 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.x += self.velocity.x
         if self.rect.right < 0:
             self.kill()
+
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -29,7 +32,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.y = y
         self.velocity_x = -1
         self.animation_counter = 0
-        
+
         # Bullet related
         self.bullets = pygame.sprite.Group()
         self.last_shot = pygame.time.get_ticks()

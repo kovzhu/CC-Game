@@ -1,7 +1,7 @@
 import pygame
 from player import Player, AmmoBox
 from enemy import Enemy
-from level import Level
+from level import Level, level_data
 from ui import UI
 
 # Initialize Pygame
@@ -14,7 +14,9 @@ pygame.mixer.music.play(-1)  # -1 means loop indefinitely
 
 # Get screen size
 screen_width = pygame.display.Info().current_w
+# screen_width = 1440
 screen_height = pygame.display.Info().current_h
+# screen_height = 900
 screen_size = (screen_width, screen_height)
 print(f"{screen_width} x {screen_height}")
 
@@ -36,10 +38,22 @@ hit_sound = pygame.mixer.Sound("sounds/lv.wav")
 # Set window title
 pygame.display.set_caption("ZC brothers Game")
 
+# # Create level
+# level_data = [
+#     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 2, 2, 0, 0, 2, 2, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 2, 2, 0, 0, 2, 2, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+# ]
+level = Level(level_data)
+
 # Create player - position 1/3 above bottom
 # player = Player(100, int(screen_height * 1 / 5))
 # player = Player(100, 180)
-player = Player(100, 605)
+player = Player(100, 605, level)
 player_group = pygame.sprite.Group()
 player_group.add(player)
 
@@ -47,19 +61,7 @@ player_group.add(player)
 enemy_group = pygame.sprite.Group()
 enemy = Enemy(int(screen_width * 0.9), 605)
 enemy_group.add(enemy)
-
-# Create level
-level_data = [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 1, 1, 1, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-]
-level = Level(level_data)
-
+level.draw(screen)
 # Create UI
 ui = UI()
 
@@ -86,7 +88,7 @@ while running:
                 else:
                     # Reset game state
                     player_group.empty()  # Clear existing player
-                    player = Player(100, 605)  # Create new player
+                    player = Player(100, 605, level)  # Create new player
                     player_group.add(player)  # Add to group
                     enemy_group.empty()
                     ui.score = 0
@@ -117,7 +119,7 @@ while running:
     screen.blit(bg, (0, 0))
 
     # Draw level
-    # level.draw(screen)
+    level.draw(screen)
 
     # Draw player
     player_group.draw(screen)
