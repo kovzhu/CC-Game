@@ -25,10 +25,11 @@ screen = pygame.display.set_mode(screen_size)
 # background_color = (255, 255, 255)  # White color
 bg = pygame.transform.scale(
     pygame.image.load("assets/bg.png"), (screen_width, screen_height)
-)
+).convert()
+
 
 # set the icons
-icon = pygame.image.load("assets/taimei1.png")
+icon = pygame.image.load("assets/taimei1.png").convert()
 pygame.display.set_icon(icon)
 
 # Load sound effects
@@ -39,15 +40,7 @@ hit_sound = pygame.mixer.Sound("sounds/lv.wav")
 pygame.display.set_caption("ZC brothers Game")
 
 # # Create level
-# level_data = [
-#     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-#     [1, 0, 2, 2, 0, 0, 2, 2, 0, 1],
-#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-#     [1, 0, 2, 2, 0, 0, 2, 2, 0, 1],
-#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-#     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-# ]
+
 level = Level(level_data)
 
 # Create player - position 1/3 above bottom
@@ -170,9 +163,17 @@ while running:
     ammo_box_group.update()
     ammo_box_group.draw(screen)
 
-    # Check for ammo box collision
+    # Check for ammo box collisions
     if ammo_box and player.collect_ammo(ammo_box):
         ammo_box = None  # Mark current box as collected
+
+    # Check for level ammo box collisions
+    level_ammo_collisions = pygame.sprite.spritecollide(player, level.ammo_group, False)
+    for ammo in level_ammo_collisions:
+        if ammo.can_collect():
+            player.ammo += 20
+            pygame.mixer.Sound("sounds/point.wav").play()
+            ammo.collect()
 
     # Draw UI with ammo count
     ui.draw(screen, player.ammo)

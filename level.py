@@ -1,4 +1,7 @@
 import pygame  # Imports the Pygame library
+from player import AmmoBox
+
+# from main import ammo_box_group
 
 
 class Level:  # Creates a Level class
@@ -9,6 +12,7 @@ class Level:  # Creates a Level class
             pygame.image.load("assets/bricks.png"),
             (self.tile_size, self.tile_size),
         )
+        self.ammo_group = pygame.sprite.Group()
         # rect = self.bricks_img.get_rect()
         # print(rect.height, rect.width)
 
@@ -72,16 +76,13 @@ class Level:  # Creates a Level class
                             self.tile_size,
                         ),
                     )
+                elif tile == 3:  # ammo box
+                    ammo_box = AmmoBox(
+                        col_index * self.tile_size, row_index * self.tile_size
+                    )
+                    self.ammo_group.add(ammo_box)
+        self.ammo_group.draw(screen)
 
-
-# level_data = [
-#     [1, 1, 1, 1, 1, 1, 1, 1],
-#     # [0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 1, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 2, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0],
-# ]
 
 # create empty level matrix
 row = 29
@@ -94,7 +95,7 @@ for i in range(row):
     level_data.append(col_data)
 
 
-def change_level_data(level_data, x, y, value, count):
+def change_level_data(level_data, row, col, value, count):
     """
     Changes a row of level_data, starting at column y, to the given value,
     for a specified count of columns.
@@ -106,12 +107,22 @@ def change_level_data(level_data, x, y, value, count):
         value: The value to assign to the specified cells.
         count (int): The number of columns to modify.
     """
-    if 0 <= x < len(level_data):
+    if 0 <= row < len(level_data):
         for i in range(count):
-            if 0 <= y + i < len(level_data[x]):
-                level_data[x][y + i] = value
+            if 0 <= col + i < len(level_data[col]):
+                level_data[row][col + i] = value
     return level_data
 
 
 level_data = change_level_data(level_data, 18, 5, 1, 5)
 level_data = change_level_data(level_data, 16, 12, 1, 5)
+level_data = change_level_data(level_data, 14, 18, 1, 10)
+
+level_data = change_level_data(level_data, 13, 28, 1, 1)
+level_data = change_level_data(level_data, 12, 28, 1, 1)
+level_data = change_level_data(level_data, 11, 28, 1, 1)
+level_data = change_level_data(level_data, 10, 28, 1, 1)
+level_data = change_level_data(level_data, 9, 28, 1, 1)
+
+level_data = change_level_data(level_data, 9, 18, 1, 10)
+level_data = change_level_data(level_data, 8, 22, 3, 1)

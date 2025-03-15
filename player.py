@@ -11,16 +11,26 @@ class AmmoBox(pygame.sprite.Sprite):
         self.rect.y = y
         self.speed = 3  # Movement speed
         self.screen_width = pygame.display.Info().current_w
+        self.collected_time = 0
+        self.cooldown = 5000  # 5 seconds cooldown in milliseconds
+
+    def can_collect(self):
+        return pygame.time.get_ticks() - self.collected_time > self.cooldown
+
+    def collect(self):
+        self.collected_time = pygame.time.get_ticks()
 
     def update(self):
-        # Move left to right
-        self.rect.x += self.speed
+        # Only update position if not in cooldown
+        if self.can_collect():
+            # Move left to right
+            self.rect.x += self.speed
 
-        # Wrap around when reaching screen edge
-        if self.rect.left > self.screen_width:
-            self.rect.right = 0
-        elif self.rect.right < 0:
-            self.rect.left = self.screen_width
+            # Wrap around when reaching screen edge
+            if self.rect.left > self.screen_width:
+                self.rect.right = 0
+            elif self.rect.right < 0:
+                self.rect.left = self.screen_width
 
 
 class Player(pygame.sprite.Sprite):
@@ -28,6 +38,11 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
         self.health = 4
         self.level = level
+        # Initialize joystick if available
+        self.joystick = None
+        if pygame.joystick.get_count() > 0:
+            self.joystick = pygame.joystick.Joystick(0)
+            self.joystick.init()
         # Load player images
         self.images = [pygame.image.load(f"assets/taimei{i}.png") for i in range(1, 4)]
         self.images = [pygame.transform.scale(img, (70, 90)) for img in self.images]
@@ -56,7 +71,40 @@ class Player(pygame.sprite.Sprite):
         moving = False
         now = pygame.time.get_ticks()
 
-        # Handle movement
+        # Handle joystick movement if available
+        if self.joystick:
+            axis_x = self.joystick.get_axis(0)
+            axis_y = self.joystick.get_axis(1)
+            
+            # Horizontal movement
+            if abs(axis_x) > 0.1:
+                self.velocity_x = 5 * axis_x
+                moving = True
+                if axis_x < 0 and self.facing_left == False:
+                    self.facing_left = True
+                elif axis_x > 0 and self.facing_left == True:
+                    self.facing_left = False
+                if now - self.last_sound_time > self.sound_cooldown:
+                    pygame.mixer.Sound("sounds/swoosh.wav").play()
+                    self.last_sound_time = now
+                if now - self.last_change_time > self.change_delay:
+                    self.current_image = (self.current_image + 1) % len(self.images)
+                    self.image = pygame.transform.flip(
+                        self.images[self.current_image], True, False
+                    ) if self.facing_left else self.images[self.current_image]
+                    self.last_change_time = now
+            
+            # Vertical movement (jumping)
+            if axis_y < -0.5 and not self.is_jumping and self.velocity_y == 0:
+                self.velocity_y = -20
+                self.is_jumping = True
+                moving = True
+                pygame.mixer.Sound("sounds/wing.wav").play()
+            # Allow finer control while in air
+            elif self.is_jumping and abs(axis_y) > 0.1:
+                self.velocity_y += -1 * axis_y
+
+        # Handle keyboard movement (fallback)
         if keys[pygame.K_LEFT]:
             self.velocity_x = -5
             moving = True
@@ -94,7 +142,9 @@ class Player(pygame.sprite.Sprite):
             pygame.mixer.Sound("sounds/wing.wav").play()
 
         # Handle shooting only if player has ammo
-        if keys[pygame.K_SPACE] and self.ammo > 0:
+        shoot_input = (keys[pygame.K_SPACE] or 
+                      (self.joystick and self.joystick.get_button(0)))
+        if shoot_input and self.ammo > 0:
             # Cycle through player images
             if self.current_image < len(self.images) - 1:
                 self.current_image += 1
@@ -171,8 +221,9 @@ class Player(pygame.sprite.Sprite):
         if (
             self.rect.colliderect(ammo_box.rect) and self.velocity_y < 0
         ):  # Only collect when jumping up
-            self.ammo += 20
-            ammo_box.kill()
-            pygame.mixer.Sound("sounds/point.wav").play()
-            return True  # Indicate successful collection
+            if ammo_box.can_collect():
+                self.ammo += 20
+                ammo_box.collect()
+                pygame.mixer.Sound("sounds/point.wav").play()
+                return True  # Indicate successful collection
         return False
