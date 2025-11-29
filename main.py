@@ -216,18 +216,17 @@ def main():
 
         # Check for ammo box collisions
         if ammo_box and player.collect_ammo(ammo_box):
+            ammo_box.kill()  # Remove sprite from all groups
             ammo_box = None  # Mark current box as collected
 
         # Check for level ammo box collisions
-        level_ammo_collisions = pygame.sprite.spritecollide(player, level.ammo_group, False)
+        level_ammo_collisions = pygame.sprite.spritecollide(player, level.ammo_group, True)
         for ammo in level_ammo_collisions:
-            if ammo.can_collect():
-                player.ammo += 20
-                pygame.mixer.Sound("sounds/point.wav").play()
-                ammo.collect()
+            player.ammo += 20
+            pygame.mixer.Sound("sounds/point.wav").play()
 
         # Draw UI with ammo count
-        ui.draw(screen, player.ammo)
+        ui.draw(screen, player.health, player.ammo)
 
         # Draw game over screen
         if game_over:

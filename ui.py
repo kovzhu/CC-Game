@@ -15,15 +15,15 @@ class UI:
         """Update the score display"""
         pass
 
-    def draw(self, screen, ammo=0):
+    def draw(self, screen, health, ammo=0):
         # Draw score
         font = pygame.font.Font(None, 36)
         text = font.render(f"Score: {self.score}", True, (255, 255, 255))
         screen.blit(text, (20, 20))
 
         # Draw health
-        for i in range(2):
-            if i < self.health:
+        for i in range(3):
+            if i < health:
                 screen.blit(self.heart_full, (20 + i * 40, 60))
             else:
                 screen.blit(self.heart_empty, (20 + i * 40, 60))

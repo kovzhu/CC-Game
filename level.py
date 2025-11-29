@@ -136,18 +136,35 @@ def change_level_data(level_data, row, col, value, count):
     return level_data
 
 
-level_data = change_level_data(level_data, 18, 5, 1, 5)
-level_data = change_level_data(level_data, 16, 12, 1, 5)
-level_data = change_level_data(level_data, 14, 18, 1, 10)
+# --- Level Design ---
 
-level_data = change_level_data(level_data, 13, 28, 1, 1)
-level_data = change_level_data(level_data, 12, 28, 1, 1)
-level_data = change_level_data(level_data, 11, 28, 1, 1)
-level_data = change_level_data(level_data, 10, 28, 1, 1)
-level_data = change_level_data(level_data, 9, 28, 1, 1)
+# 1. Solid Floor (Rows 27-28)
+level_data = change_level_data(level_data, 27, 0, 1, 45)
+level_data = change_level_data(level_data, 28, 0, 1, 45)
 
-level_data = change_level_data(level_data, 9, 18, 1, 10)
-level_data = change_level_data(level_data, 8, 22, 3, 1)
+# 2. Low Platform (Left)
+level_data = change_level_data(level_data, 22, 5, 1, 5)
+level_data = change_level_data(level_data, 21, 7, 3, 1)  # Ammo on top
 
-# Add a floor at the bottom
-level_data = change_level_data(level_data, 25, 0, 1, 45)
+# 3. Staircase (Middle)
+level_data = change_level_data(level_data, 26, 15, 1, 1)
+level_data = change_level_data(level_data, 25, 16, 1, 1)
+level_data = change_level_data(level_data, 24, 17, 1, 1)
+level_data = change_level_data(level_data, 23, 18, 1, 3)  # Top of stairs
+
+# 4. Floating Platform (Center High)
+level_data = change_level_data(level_data, 18, 22, 1, 6)
+level_data = change_level_data(level_data, 17, 24, 3, 1)  # Ammo on top
+
+# 5. High Platform (Right)
+level_data = change_level_data(level_data, 14, 32, 1, 5)
+level_data = change_level_data(level_data, 13, 34, 3, 1)  # Ammo on top
+
+# 6. Wall/Obstacle (Right side)
+level_data = change_level_data(level_data, 26, 40, 1, 1)
+level_data = change_level_data(level_data, 25, 40, 1, 1)
+level_data = change_level_data(level_data, 24, 40, 1, 1)
+
+# 7. Sky Blocks (Decoration/Platform)
+level_data = change_level_data(level_data, 10, 10, 2, 3)
+level_data = change_level_data(level_data, 10, 38, 2, 3)

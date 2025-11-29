@@ -36,7 +36,7 @@ class AmmoBox(pygame.sprite.Sprite):
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y, level=None):
         super().__init__()
-        self.health = 4
+        self.health = 3
         self.level = level
         # Initialize joystick if available
         self.joystick = None
