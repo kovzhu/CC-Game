@@ -48,9 +48,11 @@ class Player(pygame.sprite.Sprite):
         self.images = [pygame.transform.scale(img, (70, 90)) for img in self.images]
         self.current_image = 0
         self.image = self.images[self.current_image]
+        
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+        
         self.velocity_x = 0
         self.velocity_y = 0
         self.is_jumping = False

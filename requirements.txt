@@ -1,0 +1,8 @@
+# CC Game - Requirements
+# Python game dependencies
+
+# Main game framework
+pygame>=2.5.0
+
+# Optional: For better joystick support
+# pygame-ce>=2.3.0  # Community Edition alternative with more features
