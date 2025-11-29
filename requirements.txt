@@ -6,3 +6,6 @@ pygame>=2.5.0
 
 # Optional: For better joystick support
 # pygame-ce>=2.3.0  # Community Edition alternative with more features
+
+# Web deployment
+pygbag>=0.8.0

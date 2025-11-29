@@ -1,4 +1,5 @@
 import pygame
+import asyncio
 from player import Player, AmmoBox
 from enemy import Enemy
 from level import Level
@@ -69,7 +70,7 @@ game_over = False
 last_hit_time = 0
 HIT_COOLDOWN = 1000  # 1 second cooldown between hits
 
-def main():
+async def main():
     global running, game_over, ammo_box, last_ammo_box_time, last_hit_time, player
     
     clock = pygame.time.Clock()
@@ -263,9 +264,11 @@ def main():
 
         # Update display
         pygame.display.flip()
+        await asyncio.sleep(0)  # Yield control to browser
 
     # Quit Pygame
     pygame.quit()
 
 
-main()
+if __name__ == "__main__":
+    asyncio.run(main())
