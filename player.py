@@ -168,25 +168,16 @@ class Player(pygame.sprite.Sprite):
         if self.velocity_y > 10:
             self.velocity_y = 10
 
-        # Update position
-        self.rect.x += self.velocity_x
-        self.rect.y += self.velocity_y
-
-        # Keep player above ground level
-        if self.rect.y > 605:
-            self.rect.y = 605
-            self.velocity_y = 0
-            self.is_jumping = False
-
-        # Handle ground and sky block collision
-        if self.level and self.level.check_collision(self.rect):
-            self.velocity_y = 0
-            self.is_jumping = False
+        # Update position with collision detection
+        if self.level:
+            self.level.check_collision(self, self.velocity_x, self.velocity_y)
         else:
-            # Apply gravity
-            self.velocity_y += 1
-            if self.velocity_y > 10:
-                self.velocity_y = 10
+            self.rect.x += self.velocity_x
+            self.rect.y += self.velocity_y
+
+        # Check if fell off screen
+        if self.rect.top > pygame.display.get_surface().get_height():
+            self.health = 0  # Die if fall off screen
 
         # Handle image cycling
         if moving:

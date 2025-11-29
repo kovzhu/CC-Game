@@ -51,7 +51,7 @@ player_group.add(player)
 
 # Create initial enemy
 enemy_group = pygame.sprite.Group()
-enemy = Enemy(int(screen_width * 0.9), 605)
+enemy = Enemy(int(screen_width * 0.9), 605, level)
 enemy_group.add(enemy)
 level.draw(screen)
 # Create UI
@@ -97,6 +97,10 @@ def main():
         # Update game logic
         if not game_over:
             player_group.update()
+            if player.health <= 0:
+                game_over = True
+                print("Game Over!")
+                pygame.mixer.Sound("sounds/game-over1.mp3").play()
             enemy_group.update()
 
             # Only check collisions if not currently invulnerable
@@ -120,11 +124,11 @@ def main():
                         enemy.rect.x += push_x
                         enemy.rect.y += push_y
                         
-                        # Clamp positions to screen bounds
+                        # Clamp positions to screen bounds (only X)
                         player.rect.x = max(0, min(screen_width - player.rect.width, player.rect.x))
-                        player.rect.y = max(0, min(screen_height - player.rect.height, player.rect.y))
+                        # player.rect.y = max(0, min(screen_height - player.rect.height, player.rect.y))
                         enemy.rect.x = max(0, min(screen_width - enemy.rect.width, enemy.rect.x))
-                        enemy.rect.y = max(0, min(screen_height - enemy.rect.height, enemy.rect.y))
+                        # enemy.rect.y = max(0, min(screen_height - enemy.rect.height, enemy.rect.y))
                         
                         # Make player temporarily invulnerable
                         player.image.set_alpha(100)
@@ -146,7 +150,7 @@ def main():
 
         # Spawn new enemy when previous one disappears
         if len(enemy_group) == 0:
-            new_enemy = Enemy(int(screen_width * 0.9), 605)
+            new_enemy = Enemy(int(screen_width * 0.9), 605, level)
             enemy_group.add(new_enemy)
 
         # Clear screen with white background
@@ -190,7 +194,7 @@ def main():
             if len(enemy_group) == 0:
                 ui.score += 1
                 ui.update_score()
-                new_enemy = Enemy(int(screen_width * 0.9), 605)
+                new_enemy = Enemy(int(screen_width * 0.9), 605, level)
                 enemy_group.add(new_enemy)
 
         # Update and draw ammo box

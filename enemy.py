@@ -19,9 +19,10 @@ class Bullet(pygame.sprite.Sprite):
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, level=None):
         super().__init__()
         self.health = 3
+        self.level = level
         self.image1 = pygame.image.load("assets/monster1.png")
         self.image2 = pygame.image.load("assets/monster2.png")
         self.image1 = pygame.transform.scale(self.image1, (100, 100))
@@ -30,7 +31,8 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-        self.velocity_x = -1
+        self.velocity_x = -2
+        self.velocity_y = 0
         self.animation_counter = 0
 
         # Bullet related
@@ -39,8 +41,28 @@ class Enemy(pygame.sprite.Sprite):
         self.shoot_delay = 2000  # 2 seconds between shots
 
     def update(self):
-        self.rect.x += self.velocity_x
+        # Apply gravity
+        self.velocity_y += 1
+        if self.velocity_y > 10:
+            self.velocity_y = 10
 
+        if self.level:
+            old_x = self.rect.x
+            self.level.check_collision(self, self.velocity_x, self.velocity_y)
+            
+            # Turn around at walls
+            if self.rect.x == old_x:
+                self.velocity_x *= -1
+        else:
+            self.rect.x += self.velocity_x
+            self.rect.y += self.velocity_y
+
+        # Simple turn around logic if hitting screen edges (optional, but good for testing)
+        if self.rect.right > pygame.display.get_surface().get_width():
+            self.velocity_x = -2
+        elif self.rect.left < 0:
+            self.velocity_x = 2
+            
         # Animate enemy
         self.animation_counter += 1
         if self.animation_counter % 10 == 0:
@@ -49,8 +71,8 @@ class Enemy(pygame.sprite.Sprite):
             else:
                 self.image = self.image1
 
-        # Remove enemy when it goes off screen
-        if self.rect.right < 0:
+        # Remove enemy when it falls off screen
+        if self.rect.top > pygame.display.get_surface().get_height():
             self.kill()
 
         # Shooting logic
