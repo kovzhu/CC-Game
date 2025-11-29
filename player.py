@@ -9,7 +9,7 @@ class AmmoBox(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-        self.speed = 3  # Movement speed
+        self.speed = 2  # Movement speed
         self.screen_width = pygame.display.Info().current_w
         self.collected_time = 0
         self.cooldown = 5000  # 5 seconds cooldown in milliseconds
@@ -80,7 +80,7 @@ class Player(pygame.sprite.Sprite):
             
             # Horizontal movement
             if abs(axis_x) > 0.1:
-                self.velocity_x = 5 * axis_x
+                self.velocity_x = 3 * axis_x
                 moving = True
                 if axis_x < 0 and self.facing_left == False:
                     self.facing_left = True
@@ -98,7 +98,7 @@ class Player(pygame.sprite.Sprite):
             
             # Vertical movement (jumping)
             if axis_y < -0.5 and not self.is_jumping and self.velocity_y == 0:
-                self.velocity_y = -20
+                self.velocity_y = -15
                 self.is_jumping = True
                 moving = True
                 pygame.mixer.Sound("sounds/wing.wav").play()
@@ -108,7 +108,7 @@ class Player(pygame.sprite.Sprite):
 
         # Handle keyboard movement (fallback)
         if keys[pygame.K_LEFT]:
-            self.velocity_x = -5
+            self.velocity_x = -3
             moving = True
             if self.facing_left == False:
                 self.facing_left = True
@@ -122,7 +122,7 @@ class Player(pygame.sprite.Sprite):
                 )
                 self.last_change_time = now
         elif keys[pygame.K_RIGHT]:
-            self.velocity_x = 5
+            self.velocity_x = 3
             moving = True
             if self.facing_left == True:
                 self.facing_left = False
@@ -138,7 +138,7 @@ class Player(pygame.sprite.Sprite):
 
         # Handle jumping
         if keys[pygame.K_UP] and not self.is_jumping:
-            self.velocity_y = -20
+            self.velocity_y = -15
             self.is_jumping = True
             moving = True
             pygame.mixer.Sound("sounds/wing.wav").play()

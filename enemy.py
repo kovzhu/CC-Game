@@ -9,7 +9,7 @@ class Bullet(pygame.sprite.Sprite):
         self.image = pygame.image.load("assets/bullet2.png")
         self.image = pygame.transform.scale(self.image, (20, 20))
         self.rect = self.image.get_rect(center=position)
-        self.speed = -5  # Move left
+        self.speed = -3  # Move left
         self.velocity = Vector2(self.speed, 0)
 
     def update(self):
@@ -31,7 +31,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-        self.velocity_x = -2
+        self.velocity_x = -1
         self.velocity_y = 0
         self.animation_counter = 0
 
@@ -59,9 +59,9 @@ class Enemy(pygame.sprite.Sprite):
 
         # Simple turn around logic if hitting screen edges (optional, but good for testing)
         if self.rect.right > pygame.display.get_surface().get_width():
-            self.velocity_x = -2
+            self.velocity_x = -1
         elif self.rect.left < 0:
-            self.velocity_x = 2
+            self.velocity_x = 1
             
         # Animate enemy
         self.animation_counter += 1

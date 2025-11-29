@@ -60,3 +60,5 @@ htmlcov/
 # Game-specific (if you want to ignore saved games or configs in the future)
 # save_data/
 # config.ini
+.pyc 
+.pycache

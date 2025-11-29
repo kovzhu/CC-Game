@@ -9,7 +9,7 @@ class Bullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.centery = y
-        self.speed = 10 * direction  # Pixels per frame
+        self.speed = 7 * direction  # Pixels per frame
 
     def update(self):
         """Move the bullet across the screen"""

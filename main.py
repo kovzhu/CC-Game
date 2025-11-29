@@ -71,8 +71,13 @@ HIT_COOLDOWN = 1000  # 1 second cooldown between hits
 
 def main():
     global running, game_over, ammo_box, last_ammo_box_time, last_hit_time, player
+    
+    clock = pygame.time.Clock()
+    
     # Game loop
     while running:
+        clock.tick(60)  # Cap at 60 FPS
+        
         # Handle events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
