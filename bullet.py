@@ -15,8 +15,7 @@ class Bullet(pygame.sprite.Sprite):
         """Move the bullet across the screen"""
         self.rect.x += self.speed
         # Remove bullet when it goes off screen
-        if (
-            self.rect.left > pygame.display.get_surface().get_width()
-            or self.rect.right < 0
-        ):
-            self.kill()
+        # Remove bullet when it goes way off screen (optional optimization)
+        # if self.rect.x < -1000 or self.rect.x > 100000:
+        #    self.kill()
+        pass

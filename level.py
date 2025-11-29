@@ -4,10 +4,16 @@ from player import AmmoBox
 # from main import ammo_box_group
 
 
+import random
+
 class Level:  # Creates a Level class
-    def __init__(self, level_data):  # Defines the constructor for the Level class
-        self.level_data = level_data  # Sets the level data to the provided level data
+    def __init__(self, level_data=None):  # Defines the constructor for the Level class
         self.tile_size = 32
+        if level_data:
+            self.level_data = level_data
+        else:
+            self.level_data = self.generate_random_level()
+            
         self.bricks_img = pygame.transform.scale(
             pygame.image.load("assets/bricks.png"),
             (self.tile_size, self.tile_size),
@@ -15,6 +21,78 @@ class Level:  # Creates a Level class
         self.ammo_group = pygame.sprite.Group()
         # Create ammo boxes
         self.create_ammo_boxes()
+
+    def generate_random_level(self):
+        rows = 29
+        cols = 300  # Long level
+        data = [[0 for _ in range(cols)] for _ in range(rows)]
+        
+        # Helper to set a block
+        def set_block(r, c, val):
+            if 0 <= r < rows and 0 <= c < cols:
+                data[r][c] = val
+
+        # 1. Floor (with gaps)
+        current_col = 0
+        while current_col < cols:
+            # Safe zone at start
+            if current_col < 20:
+                segment_len = 20
+                for i in range(segment_len):
+                    set_block(24, current_col + i, 1)
+                    set_block(25, current_col + i, 1)
+                current_col += segment_len
+                continue
+
+            # Random segment type
+            segment_type = random.choice(['flat', 'gap', 'platform', 'stairs'])
+            segment_len = random.randint(5, 15)
+            
+            if segment_type == 'flat':
+                for i in range(segment_len):
+                    set_block(24, current_col + i, 1)
+                    set_block(25, current_col + i, 1)
+                    # Random obstacle
+                    if random.random() < 0.2:
+                        set_block(23, current_col + i, 1)
+                        if random.random() < 0.5:
+                            set_block(22, current_col + i, 1)
+            
+            elif segment_type == 'gap':
+                # Gap length 2-4
+                gap_len = random.randint(2, 4)
+                current_col += gap_len  # Skip blocks (create hole)
+                segment_len = 0 # Already advanced
+                
+            elif segment_type == 'platform':
+                # Ground underneath
+                for i in range(segment_len):
+                    set_block(24, current_col + i, 1)
+                    set_block(25, current_col + i, 1)
+                
+                # Floating platform
+                height = random.randint(12, 19)
+                for i in range(2, segment_len - 2):
+                    set_block(height, current_col + i, 1)
+                    if i == segment_len // 2: # Ammo on top
+                        set_block(height - 1, current_col + i, 3)
+
+            elif segment_type == 'stairs':
+                # Ground underneath
+                for i in range(segment_len):
+                    set_block(24, current_col + i, 1)
+                    set_block(25, current_col + i, 1)
+                
+                # Stairs up
+                stair_height = 23
+                for i in range(segment_len):
+                    if i % 2 == 0:
+                        stair_height -= 1
+                    set_block(stair_height, current_col + i, 1)
+            
+            current_col += segment_len
+            
+        return data
 
     def check_collision(self, sprite, x_vel, y_vel):
         """
@@ -81,90 +159,34 @@ class Level:  # Creates a Level class
                     # clear the tile so we don't draw it or spawn it again
                     self.level_data[row_index][col_index] = 0
 
-    def draw(self, screen):  # Defines a method to draw the level on the screen
-        for row_index, row in enumerate(
-            self.level_data
-        ):  # Loops through each row in the level data
-            for col_index, tile in enumerate(row):  # Loops through each tile in the row
-                if tile == 1:  # Checks if the tile is a ground tile (represented by 1)
+    def draw(self, screen, scroll_x=0):  # Added scroll_x
+        # Calculate visible range
+        start_col = max(0, int(scroll_x // self.tile_size))
+        end_col = start_col + int(pygame.display.get_surface().get_width() // self.tile_size) + 2
+        end_col = min(end_col, len(self.level_data[0]))
+
+        for row_index, row in enumerate(self.level_data):
+            # Only draw visible columns
+            for col_index in range(start_col, end_col):
+                tile = row[col_index]
+                if tile == 1:
                     position = (
-                        col_index * self.tile_size,
+                        col_index * self.tile_size - scroll_x,
                         row_index * self.tile_size,
                     )
                     screen.blit(self.bricks_img, position)
-                elif tile == 2:  # Sky block
+                elif tile == 2:
                     pygame.draw.rect(
                         screen,
                         (0, 0, 255),
                         (
-                            col_index * self.tile_size,
+                            col_index * self.tile_size - scroll_x,
                             row_index * self.tile_size,
                             self.tile_size,
                             self.tile_size,
                         ),
                     )
-        self.ammo_group.draw(screen)
-
-
-# create empty level matrix
-row = 29
-col = 45
-level_data = []
-for i in range(row):
-    col_data = []
-    for j in range(col):
-        col_data.append(0)
-    level_data.append(col_data)
-
-
-def change_level_data(level_data, row, col, value, count):
-    """
-    Changes a row of level_data, starting at column y, to the given value,
-    for a specified count of columns.
-
-    Args:
-        level_data (list of lists): The 2D list representing the level data.
-        x (int): The row index to modify.
-        y (int): The starting column index to modify.
-        value: The value to assign to the specified cells.
-        count (int): The number of columns to modify.
-    """
-    if 0 <= row < len(level_data):
-        for i in range(count):
-            if 0 <= col + i < len(level_data[row]):
-                level_data[row][col + i] = value
-    return level_data
-
-
-# --- Level Design ---
-
-# 1. Solid Floor (Rows 27-28)
-level_data = change_level_data(level_data, 27, 0, 1, 45)
-level_data = change_level_data(level_data, 28, 0, 1, 45)
-
-# 2. Low Platform (Left)
-level_data = change_level_data(level_data, 22, 5, 1, 5)
-level_data = change_level_data(level_data, 21, 7, 3, 1)  # Ammo on top
-
-# 3. Staircase (Middle)
-level_data = change_level_data(level_data, 26, 15, 1, 1)
-level_data = change_level_data(level_data, 25, 16, 1, 1)
-level_data = change_level_data(level_data, 24, 17, 1, 1)
-level_data = change_level_data(level_data, 23, 18, 1, 3)  # Top of stairs
-
-# 4. Floating Platform (Center High)
-level_data = change_level_data(level_data, 18, 22, 1, 6)
-level_data = change_level_data(level_data, 17, 24, 3, 1)  # Ammo on top
-
-# 5. High Platform (Right)
-level_data = change_level_data(level_data, 14, 32, 1, 5)
-level_data = change_level_data(level_data, 13, 34, 3, 1)  # Ammo on top
-
-# 6. Wall/Obstacle (Right side)
-level_data = change_level_data(level_data, 26, 40, 1, 1)
-level_data = change_level_data(level_data, 25, 40, 1, 1)
-level_data = change_level_data(level_data, 24, 40, 1, 1)
-
-# 7. Sky Blocks (Decoration/Platform)
-level_data = change_level_data(level_data, 10, 10, 2, 3)
-level_data = change_level_data(level_data, 10, 38, 2, 3)
+        
+        # Draw ammo boxes with scroll offset
+        for ammo in self.ammo_group:
+            screen.blit(ammo.image, (ammo.rect.x - scroll_x, ammo.rect.y))

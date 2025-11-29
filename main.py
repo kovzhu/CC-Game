@@ -1,7 +1,7 @@
 import pygame
 from player import Player, AmmoBox
 from enemy import Enemy
-from level import Level, level_data
+from level import Level
 from ui import UI
 
 # Initialize Pygame
@@ -40,7 +40,7 @@ pygame.display.set_caption("ZC brothers Game")
 
 # # Create level
 
-level = Level(level_data)
+level = Level()
 
 # Create player - position 1/3 above bottom
 # player = Player(100, int(screen_height * 1 / 5))
@@ -74,16 +74,18 @@ def main():
     
     clock = pygame.time.Clock()
     
+    # Camera scroll
+    scroll_x = 0
+    
     # Game loop
     while running:
         clock.tick(60)  # Cap at 60 FPS
         
-        # Handle events
+        # ... (events) ...
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.USEREVENT:
-                # Reset player alpha after invulnerability period
                 player.image.set_alpha(255)
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
@@ -91,13 +93,14 @@ def main():
                         hit_sound.play()
                     else:
                         # Reset game state
-                        player_group.empty()  # Clear existing player
-                        player = Player(100, 605, level)  # Create new player
-                        player_group.add(player)  # Add to group
+                        player_group.empty()
+                        player = Player(100, 605, level)
+                        player_group.add(player)
                         enemy_group.empty()
                         ui.score = 0
                         ui.update_score()
                         game_over = False
+                        scroll_x = 0 # Reset scroll
 
         # Update game logic
         if not game_over:
@@ -107,6 +110,14 @@ def main():
                 print("Game Over!")
                 pygame.mixer.Sound("sounds/game-over1.mp3").play()
             enemy_group.update()
+
+            # Update camera scroll
+            target_x = player.rect.centerx - screen_width / 2
+            scroll_x += (target_x - scroll_x) / 20
+            
+            # Limit scroll to level bounds
+            level_width = len(level.level_data[0]) * level.tile_size
+            scroll_x = max(0, min(scroll_x, level_width - screen_width))
 
             # Only check collisions if not currently invulnerable
             current_time = pygame.time.get_ticks()
@@ -130,10 +141,8 @@ def main():
                         enemy.rect.y += push_y
                         
                         # Clamp positions to screen bounds (only X)
-                        player.rect.x = max(0, min(screen_width - player.rect.width, player.rect.x))
-                        # player.rect.y = max(0, min(screen_height - player.rect.height, player.rect.y))
-                        enemy.rect.x = max(0, min(screen_width - enemy.rect.width, enemy.rect.x))
-                        # enemy.rect.y = max(0, min(screen_height - enemy.rect.height, enemy.rect.y))
+                        # player.rect.x = max(0, min(screen_width - player.rect.width, player.rect.x))
+                        enemy.rect.x = max(0, min(level_width - enemy.rect.width, enemy.rect.x))
                         
                         # Make player temporarily invulnerable
                         player.image.set_alpha(100)
@@ -155,27 +164,35 @@ def main():
 
         # Spawn new enemy when previous one disappears
         if len(enemy_group) == 0:
-            new_enemy = Enemy(int(screen_width * 0.9), 605, level)
-            enemy_group.add(new_enemy)
+            # Spawn enemy ahead of player
+            spawn_x = player.rect.x + screen_width
+            if spawn_x < len(level.level_data[0]) * level.tile_size:
+                new_enemy = Enemy(spawn_x, 605, level)
+                enemy_group.add(new_enemy)
 
         # Clear screen with white background
         # screen.fill(background_color)
         screen.blit(bg, (0, 0))
 
         # Draw level
-        level.draw(screen)
+        level.draw(screen, scroll_x)
+
+        # Helper to draw sprites with offset
+        def draw_with_offset(group):
+            for sprite in group:
+                screen.blit(sprite.image, (sprite.rect.x - scroll_x, sprite.rect.y))
 
         # Draw player
-        player_group.draw(screen)
+        draw_with_offset(player_group)
 
         # Draw bullets
-        player.bullets.draw(screen)
+        draw_with_offset(player.bullets)
         player.bullets.update()
 
         # Draw enemy and their bullets
-        enemy_group.draw(screen)
+        draw_with_offset(enemy_group)
         for enemy in enemy_group:
-            enemy.bullets.draw(screen)
+            draw_with_offset(enemy.bullets)
 
         # Check for player bullet-enemy collisions
         bullet_collisions = pygame.sprite.groupcollide(
@@ -199,20 +216,25 @@ def main():
             if len(enemy_group) == 0:
                 ui.score += 1
                 ui.update_score()
-                new_enemy = Enemy(int(screen_width * 0.9), 605, level)
-                enemy_group.add(new_enemy)
+                # Spawn ahead
+                spawn_x = player.rect.x + screen_width
+                if spawn_x < len(level.level_data[0]) * level.tile_size:
+                    new_enemy = Enemy(spawn_x, 605, level)
+                    enemy_group.add(new_enemy)
 
         # Update and draw ammo box
         current_time = pygame.time.get_ticks()
 
         # Spawn new ammo box if enough time has passed and no box exists
         if ammo_box is None and current_time - last_ammo_box_time > AMMO_BOX_INTERVAL:
-            ammo_box = AmmoBox(-50, 550)  # Start off screen
+            # Spawn relative to player
+            ammo_box = AmmoBox(player.rect.x + screen_width, 550)  # Start off screen right
             ammo_box_group.add(ammo_box)
             last_ammo_box_time = current_time
 
         ammo_box_group.update()
-        ammo_box_group.draw(screen)
+        # Draw ammo box with offset
+        draw_with_offset(ammo_box_group)
 
         # Check for ammo box collisions
         if ammo_box and player.collect_ammo(ammo_box):
