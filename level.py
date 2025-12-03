@@ -59,8 +59,8 @@ class Level:  # Creates a Level class
                             set_block(22, current_col + i, 1)
             
             elif segment_type == 'gap':
-                # Gap length 2-4
-                gap_len = random.randint(2, 4)
+                # Gap length 2 (safe for jumping)
+                gap_len = 2
                 current_col += gap_len  # Skip blocks (create hole)
                 segment_len = 0 # Already advanced
                 
@@ -70,8 +70,8 @@ class Level:  # Creates a Level class
                     set_block(24, current_col + i, 1)
                     set_block(25, current_col + i, 1)
                 
-                # Floating platform
-                height = random.randint(12, 19)
+                # Floating platform - lower to be reachable (2-4 blocks up)
+                height = random.randint(20, 22)
                 for i in range(2, segment_len - 2):
                     set_block(height, current_col + i, 1)
                     if i == segment_len // 2: # Ammo on top

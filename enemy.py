@@ -1,6 +1,7 @@
 import pygame
 import random
 from pygame.math import Vector2
+import math
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -19,12 +20,12 @@ class Bullet(pygame.sprite.Sprite):
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x, y, level=None):
+    def __init__(self, x, y, level=None, img1="assets/monster1.png", img2="assets/monster2.png"):
         super().__init__()
-        self.health = 10  # Increased from 3 to 10
+        self.health = 10
         self.level = level
-        self.image1 = pygame.image.load("assets/monster1.png")
-        self.image2 = pygame.image.load("assets/monster2.png")
+        self.image1 = pygame.image.load(img1)
+        self.image2 = pygame.image.load(img2)
         self.image1 = pygame.transform.scale(self.image1, (100, 100))
         self.image2 = pygame.transform.scale(self.image2, (100, 100))
         self.image = self.image1
@@ -102,3 +103,46 @@ class Enemy(pygame.sprite.Sprite):
         except Exception as e:
             print(f"Error playing death sound: {e}")
         super().kill()
+
+
+class SlimeEnemy(Enemy):
+    def __init__(self, x, y, level=None):
+        super().__init__(x, y, level, "assets/monster3.png", "assets/monster4.png")
+        self.health = 15  # Tougher
+        self.shoot_delay = 1500 # Shoots faster
+
+class BatEnemy(Enemy):
+    def __init__(self, x, y, level=None):
+        super().__init__(x, y, level, "assets/monster3.png", "assets/monster4.png")
+        self.health = 5 # Weaker
+        self.shoot_delay = 2500
+        self.fly_offset = 0
+        self.start_y = y
+
+    def update(self):
+        # Flying logic - no gravity
+        self.rect.x += self.velocity_x
+        
+        # Bob up and down
+        self.fly_offset += 0.1
+        self.rect.y = self.start_y + 50 * math.sin(self.fly_offset)
+
+        # Animate
+        self.animation_counter += 1
+        if self.animation_counter % 10 == 0:
+            if self.image == self.image1:
+                self.image = self.image2
+            else:
+                self.image = self.image1
+
+        # Remove if off screen (left)
+        if self.rect.right < -100: # Assuming they move left and eventually go off screen
+             self.kill()
+             
+        # Shooting
+        now = pygame.time.get_ticks()
+        if now - self.last_shot > self.shoot_delay:
+            self.shoot()
+            self.last_shot = now
+
+        self.bullets.update()
