@@ -21,7 +21,7 @@ class Bullet(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y, level=None):
         super().__init__()
-        self.health = 3
+        self.health = 10  # Increased from 3 to 10
         self.level = level
         self.image1 = pygame.image.load("assets/monster1.png")
         self.image2 = pygame.image.load("assets/monster2.png")

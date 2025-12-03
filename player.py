@@ -67,6 +67,17 @@ class Player(pygame.sprite.Sprite):
         self.ammo = 0  # Start with no ammo
         self.has_ammo_box = True  # Flag to track if ammo box exists
         self.facing_left = False
+        
+        # Defense system
+        self.is_defending = False
+        self.shield_image = pygame.image.load("assets/shield.png")
+        self.shield_image = pygame.transform.scale(self.shield_image, (100, 100))
+        self.defense_reduction = 0.5  # Reduce damage by 50% when defending
+        
+        # Bomb system
+        self.bombs = 3  # Start with 3 bombs
+        self.last_bomb_time = 0
+        self.bomb_cooldown = 1000  # 1 second between bombs
 
     def update(self):
         keys = pygame.key.get_pressed()
@@ -142,6 +153,11 @@ class Player(pygame.sprite.Sprite):
             self.is_jumping = True
             moving = True
             pygame.mixer.Sound("sounds/wing.wav").play()
+        
+        # Handle defense
+        defense_input = (keys[pygame.K_DOWN] or 
+                        (self.joystick and self.joystick.get_button(1)))
+        self.is_defending = defense_input
 
         # Handle shooting only if player has ammo
         shoot_input = (keys[pygame.K_SPACE] or 
@@ -162,6 +178,19 @@ class Player(pygame.sprite.Sprite):
                 self.shoot()
                 self.last_shot_time = now
                 self.ammo -= 1
+        
+        # Handle bomb placement (B key or gamepad button 2)
+        bomb_input = (keys[pygame.K_b] or 
+                     (self.joystick and self.joystick.get_button(2)))
+        if bomb_input and self.bombs > 0:
+            if now - self.last_bomb_time > self.bomb_cooldown:
+                # Return bomb data to be placed in main game loop
+                self.place_bomb_request = True
+                self.last_bomb_time = now
+                self.bombs -= 1
+                pygame.mixer.Sound("sounds/point.wav").play()  # Bomb place sound
+        else:
+            self.place_bomb_request = False
 
         # Apply gravity
         self.velocity_y += 1
@@ -195,6 +224,16 @@ class Player(pygame.sprite.Sprite):
 
     def hit(self):
         """Called when player collides with enemy"""
+        if self.is_defending:
+            # Reduce damage when defending
+            if hasattr(self, 'defense_reduction'):
+                # Only take partial damage
+                damage = 1 * (1 - self.defense_reduction)
+                if damage < 1:
+                    # Don't take damage if reduction is high enough
+                    pygame.mixer.Sound("sounds/point.wav").play()  # Play shield sound
+                    return
+        
         self.health -= 1
         if self.health <= 0:
             self.kill()

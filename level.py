@@ -190,3 +190,24 @@ class Level:  # Creates a Level class
         # Draw ammo boxes with scroll offset
         for ammo in self.ammo_group:
             screen.blit(ammo.image, (ammo.rect.x - scroll_x, ammo.rect.y))
+    
+    def destroy_tiles_in_radius(self, center_x, center_y, radius):
+        """Destroy all tiles within a given radius from center point"""
+        # Convert pixel coordinates to tile coordinates
+        start_col = max(0, int((center_x - radius) // self.tile_size))
+        end_col = min(len(self.level_data[0]), int((center_x + radius) // self.tile_size) + 1)
+        start_row = max(0, int((center_y - radius) // self.tile_size))
+        end_row = min(len(self.level_data), int((center_y + radius) // self.tile_size) + 1)
+        
+        for row in range(start_row, end_row):
+            for col in range(start_col, end_col):
+                # Calculate distance from center
+                tile_center_x = col * self.tile_size + self.tile_size / 2
+                tile_center_y = row * self.tile_size + self.tile_size / 2
+                distance = ((tile_center_x - center_x) ** 2 + (tile_center_y - center_y) ** 2) ** 0.5
+                
+                if distance <= radius:
+                    # Destroy tile (set to 0)
+                    if self.level_data[row][col] == 1:  # Only destroy bricks
+                        self.level_data[row][col] = 0
+
