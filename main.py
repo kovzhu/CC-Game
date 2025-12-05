@@ -76,8 +76,19 @@ game_over = False
 last_hit_time = 0
 HIT_COOLDOWN = 1000  # 1 second cooldown between hits
 
+# Stage system
+current_stage = 1
+enemies_killed_this_stage = 0
+enemies_needed_per_stage = 5  # Start with 5 enemies per stage
+stage_clear = False
+stage_clear_time = 0
+STAGE_CLEAR_DISPLAY_TIME = 3000  # Show "Stage Clear" for 3 seconds
+
+
 async def main():
     global running, game_over, ammo_box, last_ammo_box_time, last_hit_time, player
+    global current_stage, enemies_killed_this_stage, enemies_needed_per_stage, stage_clear, stage_clear_time
+
     
     clock = pygame.time.Clock()
     
@@ -125,6 +136,10 @@ async def main():
             # Limit scroll to level bounds
             level_width = len(level.level_data[0]) * level.tile_size
             scroll_x = max(0, min(scroll_x, level_width - screen_width))
+            
+            # Set scroll_x on player for bullet shooting
+            player.scroll_x = scroll_x
+
 
             # Only check collisions if not currently invulnerable
             current_time = pygame.time.get_ticks()
@@ -169,8 +184,135 @@ async def main():
                             game_over = True
                             print("Game Over!")
 
+                # Check collision with enemy bullets
+                for enemy in enemy_group:
+                    bullet_hits = pygame.sprite.spritecollide(player, enemy.bullets, True)
+                    if bullet_hits:
+                        player.hit()
+                        hit_sound.play()
+                        
+                        # Make player temporarily invulnerable
+                        player.image.set_alpha(100)
+                        pygame.time.set_timer(pygame.USEREVENT, 500)
+                        last_hit_time = current_time
+                        
+                        if player.health <= 0:
+                            game_over = True
+                            print("Game Over!")
+                            pygame.mixer.Sound("sounds/game-over1.mp3").play()
+                        
+                        break
+
+            # Spawn ammo box periodically
+            if current_time - last_ammo_box_time > AMMO_BOX_INTERVAL:
+                if len(ammo_box_group) == 0:  # Only one ammo box at a time
+                    # Spawn ahead of player
+                    spawn_x = player.rect.x + screen_width // 2 + random.randint(100, 300)
+                    spawn_y = random.randint(400, 650)
+                    ammo_box = AmmoBox(spawn_x, spawn_y, level)
+                    ammo_box_group.add(ammo_box)
+                    last_ammo_box_time = current_time
+
+            # Update ammo boxes
+            ammo_box_group.update()
+            
+            # Check ammo box collision
+            for box in ammo_box_group:
+                if player.rect.colliderect(box.rect):
+                    player.ammo += 20
+                    pygame.mixer.Sound("sounds/point.wav").play()
+                    box.kill()
+
+            # Update player bullets
+            player.bullets.update()
+            
+            # Track enemy count before damage
+            enemies_before = len(enemy_group)
+            
+            # Check player bullet collision with enemies
+            for bullet in player.bullets:
+                hit_enemies = pygame.sprite.spritecollide(bullet, enemy_group, False)
+                if hit_enemies:
+                    bullet.kill()
+                    for enemy in hit_enemies:
+                        # Apply damage based on player level
+                        for _ in range(player.damage):
+                            enemy.hit()
+                        # Add score when hitting enemy
+                        ui.score += 10
+                        ui.update_score()
+            
+            # Track enemy count after damage to detect kills
+            enemies_after = len(enemy_group)
+            enemies_killed = enemies_before - enemies_after
+            if enemies_killed > 0:
+                enemies_killed_this_stage += enemies_killed
+                print(f"Killed {enemies_killed} enemies. Progress: {enemies_killed_this_stage}/{enemies_needed_per_stage}")
+                
+                # Check if stage is complete
+                if enemies_killed_this_stage >= enemies_needed_per_stage:
+                    stage_clear = True
+                    stage_clear_time = pygame.time.get_ticks()
+                    current_stage += 1
+                    enemies_killed_this_stage = 0
+                    # Increase difficulty: more enemies needed per stage
+                    enemies_needed_per_stage += 3
+                    
+                    # Stage rewards
+                    if player.health < 3:
+                        player.health += 1
+                    player.ammo += 10
+                    player.bombs += 1
+                    ui.score += 50
+                    
+                    # Clear all existing enemies
+                    enemy_group.empty()
+                    
+                    # Spawn new enemies for next stage (target + 10)
+                    enemies_to_spawn = enemies_needed_per_stage + 10
+                    for i in range(enemies_to_spawn):
+                        # Spawn enemies around the player
+                        spawn_x = player.rect.x + random.randint(-500, 1500)
+                        
+                        # Randomly choose enemy type
+                        enemy_type = random.choice([Enemy, SlimeEnemy, BatEnemy])
+                        
+                        if enemy_type == BatEnemy:
+                            spawn_y = random.randint(200, 500)
+                        else:
+                            spawn_y = random.randint(500, 650)
+                        
+                        # Create enemy with stage-based health bonus
+                        new_enemy = enemy_type(spawn_x, spawn_y, level)
+                        health_bonus = ((current_stage - 1) // 3) * 5
+                        new_enemy.health += health_bonus
+                        enemy_group.add(new_enemy)
+                    
+                    pygame.mixer.Sound("sounds/point.wav").play()
+                    print(f"Stage {current_stage - 1} Clear! Next stage needs {enemies_needed_per_stage} kills")
+                    print(f"Spawned {enemies_to_spawn} enemies for Stage {current_stage}")
+
+            
+            # Check for level up (every 100 points)
+            new_level = (ui.score // 100) + 1
+            if new_level > player.player_level:
+                player.player_level = new_level
+                player.damage = player.player_level
+                # Play level up sound
+                pygame.mixer.Sound("sounds/point.wav").play()
+                print(f"Level Up! Now Level {player.player_level}, Damage: {player.damage}")
+
+
+
+
+
+
+
+
         # Spawn new enemy when previous one disappears
-        if len(enemy_group) < 3:  # Keep 3 enemies active
+        # Keep enemies at target + 10 for consistency with stage clear
+        max_enemies = enemies_needed_per_stage + 10
+        if len(enemy_group) < max_enemies:
             # Spawn enemy ahead of player
             spawn_x = player.rect.x + screen_width + random.randint(0, 200)
             
@@ -184,7 +326,14 @@ async def main():
 
             if spawn_x < len(level.level_data[0]) * level.tile_size:
                 new_enemy = enemy_type(spawn_x, spawn_y, level)
+                
+                # Increase enemy health based on stage (every 3 stages, +5 health)
+                health_bonus = ((current_stage - 1) // 3) * 5
+                new_enemy.health += health_bonus
+                
                 enemy_group.add(new_enemy)
+
+
         
         # Handle bomb placement
         if hasattr(player, 'place_bomb_request') and player.place_bomb_request:
@@ -219,7 +368,8 @@ async def main():
         # Draw shield if player is defending
         if hasattr(player, 'is_defending') and player.is_defending:
              # Draw shield effect (e.g., a circle around the player)
-             pygame.draw.circle(screen, (0, 255, 255), player.rect.center, 60, 2)
+             shield_center = (player.rect.centerx - scroll_x, player.rect.centery)
+             pygame.draw.circle(screen, (0, 255, 255), shield_center, 60, 2)
              
         draw_with_offset(enemy_group)
         draw_with_offset(ammo_box_group)
@@ -229,9 +379,21 @@ async def main():
         # Draw bullets
         for enemy in enemy_group:
             draw_with_offset(enemy.bullets)
+        
+        # Draw player bullets
+        draw_with_offset(player.bullets)
+
             
         # Draw UI
-        ui.draw(screen, player.health, player.ammo)
+        ui.draw(screen, player.health, player.ammo, player.player_level, 
+                current_stage, enemies_killed_this_stage, enemies_needed_per_stage, player.bombs)
+        
+        # Draw stage clear message if stage was just cleared
+        if stage_clear and pygame.time.get_ticks() - stage_clear_time < STAGE_CLEAR_DISPLAY_TIME:
+            ui.draw_stage_clear(screen, current_stage - 1)
+        elif stage_clear and pygame.time.get_ticks() - stage_clear_time >= STAGE_CLEAR_DISPLAY_TIME:
+            stage_clear = False
+
 
         # Update display
         pygame.display.flip()

@@ -2,35 +2,32 @@ import pygame
 
 
 class AmmoBox(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, level=None):
         super().__init__()
         self.image = pygame.image.load("assets/ammo.jpg")
         self.image = pygame.transform.scale(self.image, (60, 60))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-        self.speed = 2  # Movement speed
-        self.screen_width = pygame.display.Info().current_w
-        self.collected_time = 0
-        self.cooldown = 5000  # 5 seconds cooldown in milliseconds
-
-    def can_collect(self):
-        return pygame.time.get_ticks() - self.collected_time > self.cooldown
-
-    def collect(self):
-        self.collected_time = pygame.time.get_ticks()
+        self.level = level
+        self.velocity_y = 0
 
     def update(self):
-        # Only update position if not in cooldown
-        if self.can_collect():
-            # Move left to right
-            self.rect.x += self.speed
+        # Apply gravity
+        self.velocity_y += 1
+        if self.velocity_y > 10:
+            self.velocity_y = 10
+        
+        # Update position with collision detection
+        if self.level:
+            self.level.check_collision(self, 0, self.velocity_y)
+        else:
+            self.rect.y += self.velocity_y
+        
+        # Remove if falls off screen
+        if self.rect.top > pygame.display.get_surface().get_height():
+            self.kill()
 
-            # Wrap around when reaching screen edge
-            if self.rect.left > self.screen_width:
-                self.rect.right = 0
-            elif self.rect.right < 0:
-                self.rect.left = self.screen_width
 
 
 class Player(pygame.sprite.Sprite):
@@ -64,7 +61,7 @@ class Player(pygame.sprite.Sprite):
         self.bullets = pygame.sprite.Group()
         self.shoot_cooldown = 500
         self.last_shot_time = 0
-        self.ammo = 0  # Start with no ammo
+        self.ammo = 30  # Start with some ammo for testing
         self.has_ammo_box = True  # Flag to track if ammo box exists
         self.facing_left = False
         
@@ -78,6 +75,11 @@ class Player(pygame.sprite.Sprite):
         self.bombs = 3  # Start with 3 bombs
         self.last_bomb_time = 0
         self.bomb_cooldown = 1000  # 1 second between bombs
+        
+        # Level system
+        self.player_level = 1
+        self.damage = 1  # Base damage
+
 
     def update(self):
         keys = pygame.key.get_pressed()
@@ -91,7 +93,7 @@ class Player(pygame.sprite.Sprite):
             
             # Horizontal movement
             if abs(axis_x) > 0.1:
-                self.velocity_x = 3 * axis_x
+                self.velocity_x = 5 * axis_x
                 moving = True
                 if axis_x < 0 and self.facing_left == False:
                     self.facing_left = True
@@ -109,7 +111,7 @@ class Player(pygame.sprite.Sprite):
             
             # Vertical movement (jumping)
             if axis_y < -0.5 and not self.is_jumping and self.velocity_y == 0:
-                self.velocity_y = -15
+                self.velocity_y = -20
                 self.is_jumping = True
                 moving = True
                 pygame.mixer.Sound("sounds/wing.wav").play()
@@ -119,7 +121,7 @@ class Player(pygame.sprite.Sprite):
 
         # Handle keyboard movement (fallback)
         if keys[pygame.K_LEFT]:
-            self.velocity_x = -3
+            self.velocity_x = -5
             moving = True
             if self.facing_left == False:
                 self.facing_left = True
@@ -133,7 +135,7 @@ class Player(pygame.sprite.Sprite):
                 )
                 self.last_change_time = now
         elif keys[pygame.K_RIGHT]:
-            self.velocity_x = 3
+            self.velocity_x = 5
             moving = True
             if self.facing_left == True:
                 self.facing_left = False
@@ -149,7 +151,7 @@ class Player(pygame.sprite.Sprite):
 
         # Handle jumping
         if keys[pygame.K_UP] and not self.is_jumping:
-            self.velocity_y = -15
+            self.velocity_y = -20
             self.is_jumping = True
             moving = True
             pygame.mixer.Sound("sounds/wing.wav").play()
@@ -175,7 +177,11 @@ class Player(pygame.sprite.Sprite):
                 self.last_sound_time = now
             # Shoot bullet if cooldown has passed
             if now - self.last_shot_time > self.shoot_cooldown:
-                self.shoot()
+                # Get mouse position
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                # Get scroll offset from level if available
+                scroll_x = getattr(self, 'scroll_x', 0)
+                self.shoot(mouse_x, mouse_y, scroll_x)
                 self.last_shot_time = now
                 self.ammo -= 1
         
@@ -238,15 +244,13 @@ class Player(pygame.sprite.Sprite):
         if self.health <= 0:
             self.kill()
 
-    def shoot(self):
-        """Create a new bullet and add it to the bullets group"""
+    def shoot(self, mouse_x, mouse_y, scroll_x=0):
+        """Create a new bullet that travels toward the mouse position"""
         from bullet import Bullet
 
-        if self.facing_left:
-            bullet = Bullet(self.rect.centerx - 20, self.rect.centery, -1)  # Shoot left
-        else:
-            bullet = Bullet(self.rect.centerx + 20, self.rect.centery, 1)  # Shoot right
+        bullet = Bullet(self.rect.centerx, self.rect.centery, mouse_x, mouse_y, scroll_x)
         self.bullets.add(bullet)
+
 
     def collect_ammo(self, ammo_box):
         """Called when player collects ammo box"""
