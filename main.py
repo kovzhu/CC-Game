@@ -310,15 +310,31 @@ async def main():
                  # Boss Bullets hitting Player
                  hits = pygame.sprite.spritecollide(player, boss.bullets, True)
                  if hits:
-                     player.health -= 1
-                     pygame.mixer.Sound("sounds/hit.wav").play()
+                     # Check if player is defending with shield
+                     if player.is_defending and player.shield_hits < player.max_shield_hits:
+                         player.shield_hits += 1
+                         pygame.mixer.Sound("sounds/hit.wav").play()
+                         # Shield breaks after 3 hits
+                         if player.shield_hits >= player.max_shield_hits:
+                             player.is_defending = False  # Force shield down
+                     else:
+                         player.health -= 1
+                         pygame.mixer.Sound("sounds/hit.wav").play()
                      
                  # Boss Lasers hitting Player
                  hits = pygame.sprite.spritecollide(player, boss.lasers, False) # Don't kill laser
                  if hits:
                      if pygame.time.get_ticks() % 10 == 0: # Damage tick
-                        player.health -= 1
-                        pygame.mixer.Sound("sounds/hit.wav").play()
+                         # Check if player is defending with shield
+                         if player.is_defending and player.shield_hits < player.max_shield_hits:
+                             player.shield_hits += 1
+                             pygame.mixer.Sound("sounds/hit.wav").play()
+                             # Shield breaks after 3 hits
+                             if player.shield_hits >= player.max_shield_hits:
+                                 player.is_defending = False  # Force shield down
+                         else:
+                             player.health -= 1
+                             pygame.mixer.Sound("sounds/hit.wav").play()
 
                  # Summon Minions (Final Boss)
                  if hasattr(boss, 'minions_to_add') and boss.minions_to_add:

@@ -58,6 +58,8 @@ class Player(pygame.sprite.Sprite):
         self.shield_image = pygame.image.load("assets/shield.png")
         self.shield_image = pygame.transform.scale(self.shield_image, (100, 100))
         self.defense_reduction = 0.5  # Reduce damage by 50% when defending
+        self.shield_hits = 0  # Track boss attacks blocked
+        self.max_shield_hits = 3  # Shield breaks after 3 boss hits
         
         # Bomb system
         self.bombs = 3  # Start with 3 bombs
@@ -152,6 +154,11 @@ class Player(pygame.sprite.Sprite):
         # Handle defense
         defense_input = (keys[pygame.K_DOWN] or 
                         (self.joystick and self.joystick.get_button(1)))
+        
+        # Reset shield hits when starting to defend
+        if defense_input and not self.is_defending:
+            self.shield_hits = 0
+            
         self.is_defending = defense_input
 
         # Handle shooting only if player has ammo
