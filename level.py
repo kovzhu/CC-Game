@@ -1,7 +1,5 @@
 import pygame  # Imports the Pygame library
-from player import AmmoBox
 
-# from main import ammo_box_group
 
 
 import random
@@ -18,13 +16,16 @@ class Level:  # Creates a Level class
             pygame.image.load("assets/bricks.png"),
             (self.tile_size, self.tile_size),
         )
-        self.ammo_group = pygame.sprite.Group()
+
+
         # Create ammo boxes
-        self.create_ammo_boxes()
 
     def generate_random_level(self):
+        # Initial large chunk
+        return self.generate_chunk(300)
+
+    def generate_chunk(self, cols):
         rows = 29
-        cols = 300  # Long level
         data = [[0 for _ in range(cols)] for _ in range(rows)]
         
         # Helper to set a block
@@ -35,18 +36,25 @@ class Level:  # Creates a Level class
         # 1. Floor (with gaps)
         current_col = 0
         while current_col < cols:
-            # Safe zone at start
-            if current_col < 20:
-                segment_len = 20
-                for i in range(segment_len):
+            # Safe zone logic handled by caller location or just randomness
+            # Only force safe start if it's the very first chunk? 
+            # For simplicity, we just generate random segments.
+            
+            # Map start safe zone
+            if current_col == 0 and cols >= 20: 
+                 segment_len = 20
+                 for i in range(segment_len):
                     set_block(24, current_col + i, 1)
                     set_block(25, current_col + i, 1)
-                current_col += segment_len
-                continue
+                 current_col += segment_len
+                 continue
 
             # Random segment type
             segment_type = random.choice(['flat', 'gap', 'platform', 'stairs'])
             segment_len = random.randint(5, 15)
+            
+            if current_col + segment_len > cols:
+                segment_len = cols - current_col
             
             if segment_type == 'flat':
                 for i in range(segment_len):
@@ -94,6 +102,14 @@ class Level:  # Creates a Level class
             
         return data
 
+    def extend_level(self, additional_cols=100):
+        """Generates new columns and appends them to current level data"""
+        new_chunk = self.generate_chunk(additional_cols)
+        
+        # Append each row of new_chunk to self.level_data
+        for r in range(len(self.level_data)):
+            self.level_data[r].extend(new_chunk[r])
+
     def check_collision(self, sprite, x_vel, y_vel):
         """
         Check for collisions with level tiles and resolve them.
@@ -103,25 +119,35 @@ class Level:  # Creates a Level class
         
         # Horizontal Collision
         hits = self.get_tile_hits(sprite)
-        for tile_rect in hits:
+        if hits:
             if x_vel > 0:  # Moving right; Hit left side of tile
-                sprite.rect.right = tile_rect.left
+                # Snap to the leftmost tile edge (most restrictive wall)
+                min_left = min(tile.left for tile in hits)
+                sprite.rect.right = min_left
             elif x_vel < 0:  # Moving left; Hit right side of tile
-                sprite.rect.left = tile_rect.right
+                # Snap to the rightmost tile edge
+                max_right = max(tile.right for tile in hits)
+                sprite.rect.left = max_right
 
         sprite.rect.y += y_vel
         
         # Vertical Collision
         hits = self.get_tile_hits(sprite)
-        for tile_rect in hits:
+        if hits:
             if y_vel > 0:  # Falling; Hit top of tile
-                sprite.rect.bottom = tile_rect.top
+                # Snap to the highest ground (minimum top value)
+                min_top = min(tile.top for tile in hits)
+                sprite.rect.bottom = min_top
+                
                 # Stop falling
                 if hasattr(sprite, 'velocity_y'):
                     sprite.velocity_y = 0
                     sprite.is_jumping = False
             elif y_vel < 0:  # Jumping; Hit bottom of tile
-                sprite.rect.top = tile_rect.bottom
+                # Snap to the lowest ceiling (maximum bottom value)
+                max_bottom = max(tile.bottom for tile in hits)
+                sprite.rect.top = max_bottom
+                
                 if hasattr(sprite, 'velocity_y'):
                     sprite.velocity_y = 0
 
@@ -147,17 +173,6 @@ class Level:  # Creates a Level class
                     if sprite.rect.colliderect(tile_rect):
                         hits.append(tile_rect)
         return hits
-
-    def create_ammo_boxes(self):
-        for row_index, row in enumerate(self.level_data):
-            for col_index, tile in enumerate(row):
-                if tile == 3:
-                    ammo_box = AmmoBox(
-                        col_index * self.tile_size, row_index * self.tile_size
-                    )
-                    self.ammo_group.add(ammo_box)
-                    # clear the tile so we don't draw it or spawn it again
-                    self.level_data[row_index][col_index] = 0
 
     def draw(self, screen, scroll_x=0):  # Added scroll_x
         # Calculate visible range
@@ -186,10 +201,6 @@ class Level:  # Creates a Level class
                             self.tile_size,
                         ),
                     )
-        
-        # Draw ammo boxes with scroll offset
-        for ammo in self.ammo_group:
-            screen.blit(ammo.image, (ammo.rect.x - scroll_x, ammo.rect.y))
     
     def destroy_tiles_in_radius(self, center_x, center_y, radius):
         """Destroy all tiles within a given radius from center point"""

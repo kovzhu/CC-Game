@@ -39,7 +39,7 @@ class Enemy(pygame.sprite.Sprite):
         # Bullet related
         self.bullets = pygame.sprite.Group()
         self.last_shot = pygame.time.get_ticks()
-        self.shoot_delay = 2000  # 2 seconds between shots
+        self.shoot_delay = 5000  # 5 seconds between shots
 
     def update(self):
         # Apply gravity
